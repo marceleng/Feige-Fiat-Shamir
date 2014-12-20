@@ -21,10 +21,10 @@ class ffs_prover:
     #n: Agreed upon large integer
     #k: key size
     #t: number of challenges --> Should be specified by the verifier...
-    def __init__(self,n,k,t):
+    def __init__(self,n,k):
         self.n=n
         self.k=k
-        self.t=t
+        self.t=1
         self.s=[None]*k
         self.p=[None]*k
         for i in range(0,k):
@@ -46,7 +46,7 @@ class ffs_prover:
         mysocket.write("PKA\n")
         mysocket.flush()
         response=mysocket.readline()
-        if response == "OK\n":
+        if response == "OK PKA\n":
             for value in self.p:
                 mysocket.write(str(value)+" ")
             mysocket.write("\n")
@@ -57,6 +57,14 @@ class ffs_prover:
             print "Protocol failure during key advertisment"
             exit()
     
+    def start_auth(self,mysocket):
+        mysocket.write("START\n")
+        mysocket.flush()
+        response=mysocket.readline()
+        if response.split()[0:2] == ["OK","START"]:  #TODO: match pattern "OK START [0-9]+\n"
+            self.t = int(response.split()[2])
+            print "Verifier asked for "+str(self.t)+" challenges"             
+    
     #Commit to R as described in Feige-Fiat-Shamir        
     def initiate_challenge(self,mysocket):
         mysocket.write("COMMIT\n")
@@ -64,7 +72,7 @@ class ffs_prover:
         response=mysocket.readline()
         r=0
         b=[]
-        if response == "OK\n":
+        if response == "OK COMMIT\n":
             r=random.randint(0,self.n-1)
             mysocket.write(str((coin_flip()*square_ZnZ(r, self.n)) %self.n) + " ")
             mysocket.write("\n")
@@ -89,6 +97,7 @@ class ffs_prover:
     def run(self,port):
         verifiersocket=self.register_verifier("localhost",port)
         self.advertise_key(verifiersocket)
+        self.start_auth(verifiersocket)
         for i in range(0,self.t):
             r,b = self.initiate_challenge(verifiersocket)
             self.challenge_response(r, b, verifiersocket)

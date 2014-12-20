@@ -12,6 +12,7 @@ class ffs_verifier:
         self.n=n
         self.k=k
         self.t=t
+        self.started=False
     
     def listen(self,port):
         self.sersock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -22,16 +23,20 @@ class ffs_verifier:
         while True:
             data=conn.readline()
             if data=="PKA\n":
-                conn.write("OK\n")
+                conn.write("OK PKA\n")
                 conn.flush()
                 self.handle_advertisment(conn)
+            elif data=="START\n":
+                conn.write("OK START "+str(self.t)+"\n")
+                conn.flush()
+                self.started=True
             elif data=="COMMIT\n":
-                if self.pub_key is None:
+                if (self.pub_key is None) or not (self.started):
                     conn.write("No public key registered for this connection\n")
                     conn.flush()
                     print "No pub key..."
                 else:
-                    conn.write("OK\n")
+                    conn.write("OK COMMIT\n")
                     conn.flush()
                     self.handle_challenge(conn)
             elif data=="DIE\n":
