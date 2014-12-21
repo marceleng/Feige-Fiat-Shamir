@@ -105,60 +105,12 @@ class ffs_prover:
         verifiersocket.flush()
 
 
-class dishonest_ffs_prover:
-    def __init__(self,n,k,t):   
+class dishonest_ffs_prover(ffs_prover):
+    def __init__(self,n,k):
+        ffs_prover.__init__(self, n, k) 
         self.n=n
         self.k=k
-        self.t=t
         
-    def register_verifier(self,ip,port):
-        mysocket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        mysocket.connect((ip,port))
-        return mysocket.makefile()
-    
-    def advertise_key(self,mysocket):
-        mysocket.write("PKA\n")
-        mysocket.flush()
-        response=mysocket.readline()
-        if response == "OK\n":
-            for i in range(0,self.k):
-                mysocket.write(str(random.randint(0,self.n-1))+" ")
-            mysocket.write("\n")
-            mysocket.flush()
-        else:
-            mysocket.write("DIE\n")
-            mysocket.flush()
-            print "Protocol failure during key advertisment"
-            exit()
-            
-    def initiate_challenge(self,mysocket):
-        mysocket.write("COMMIT\n")
-        mysocket.flush()
-        response=mysocket.readline()
-        r=0
-        b=[]
-        if response == "OK\n":
-            r=random.randint(0,self.n-1)
-            mysocket.write(str((coin_flip()*square_ZnZ(r, self.n)) %self.n) + " ")
-            mysocket.write("\n")
-            mysocket.flush()
-            b=map(str_to_bool,mysocket.readline().split())
-            return r,b
-        else:
-            mysocket.write("DIE\n")
-            mysocket.flush()
-            print "Protocol failure during challenge initiation"
-            exit()
-            
     def challenge_response(self,r,b,mysocket):
         mysocket.write(str(random.randint(0,self.n-1))+"\n")
         mysocket.flush()
-        
-    def run(self,port):
-        verifiersocket=self.register_verifier("localhost",port)
-        self.advertise_key(verifiersocket)
-        for i in range(0,self.t):
-            r,b = self.initiate_challenge(verifiersocket)
-            self.challenge_response(r, b, verifiersocket)
-        verifiersocket.write("DIE\n")
-        verifiersocket.flush()

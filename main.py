@@ -23,7 +23,7 @@ elif mode=='verifier':
     verifier=ffs_verifier(n,k,t)
     verifier.listen(42424)
 elif mode=='cheater':
-    cheater=dishonest_ffs_prover(n,k,t)
+    cheater=dishonest_ffs_prover(n,k)
     cheater.run(42424)
 else:
     print "Wrong argument"
